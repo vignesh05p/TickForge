@@ -10,8 +10,17 @@ import (
 	"github.com/vigneshprabhu/tickforge/internal/config"
 )
 
+// testConfig returns a minimal valid Config for use in server tests.
+func testConfig() config.Config {
+	return config.Config{
+		APIKey:    "test-api-key",
+		RateLimit: 1000,
+		RateBurst: 1000,
+	}
+}
+
 func TestHealthz(t *testing.T) {
-	srv := New(config.Config{}, nil)
+	srv := New(testConfig(), nil)
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()
 
@@ -25,9 +34,23 @@ func TestHealthz(t *testing.T) {
 	}
 }
 
+func TestHealthz_NoAuthRequired(t *testing.T) {
+	// /healthz must be reachable without X-API-Key.
+	srv := New(testConfig(), nil)
+	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	// Deliberately no X-API-Key header.
+	rec := httptest.NewRecorder()
+
+	srv.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d (healthz should bypass auth)", rec.Code, http.StatusOK)
+	}
+}
+
 func TestReadyz(t *testing.T) {
 	t.Run("ready", func(t *testing.T) {
-		srv := New(config.Config{}, nil)
+		srv := New(testConfig(), nil)
 		req := httptest.NewRequest(http.MethodGet, "/readyz", nil)
 		rec := httptest.NewRecorder()
 
@@ -39,7 +62,7 @@ func TestReadyz(t *testing.T) {
 	})
 
 	t.Run("not ready", func(t *testing.T) {
-		srv := New(config.Config{}, func(context.Context) error {
+		srv := New(testConfig(), func(context.Context) error {
 			return errors.New("dependency down")
 		})
 		req := httptest.NewRequest(http.MethodGet, "/readyz", nil)
@@ -51,4 +74,17 @@ func TestReadyz(t *testing.T) {
 			t.Fatalf("status = %d, want %d", rec.Code, http.StatusServiceUnavailable)
 		}
 	})
+}
+
+func TestReadyz_NoAuthRequired(t *testing.T) {
+	// /readyz must be reachable without X-API-Key.
+	srv := New(testConfig(), nil)
+	req := httptest.NewRequest(http.MethodGet, "/readyz", nil)
+	rec := httptest.NewRecorder()
+
+	srv.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d (readyz should bypass auth)", rec.Code, http.StatusOK)
+	}
 }

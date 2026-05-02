@@ -17,6 +17,8 @@ type Server struct {
 	cfg        config.Config
 	readyCheck ReadinessCheck
 	mux        *http.ServeMux
+	auth       func(http.Handler) http.Handler
+	rateLimit  func(http.Handler) http.Handler
 }
 
 func New(cfg config.Config, readyCheck ReadinessCheck) *Server {
@@ -28,15 +30,20 @@ func New(cfg config.Config, readyCheck ReadinessCheck) *Server {
 		cfg:        cfg,
 		readyCheck: readyCheck,
 		mux:        http.NewServeMux(),
+		auth:       RequireAPIKey(cfg.APIKey),
+		rateLimit:  RateLimit(cfg.RateLimit, cfg.RateBurst),
 	}
 	s.routes()
 	return s
 }
 
+// Handler returns the root HTTP handler with the global rate-limiter applied.
+// All requests pass through rate limiting; auth is applied per-route.
 func (s *Server) Handler() http.Handler {
-	return s.mux
+	return s.rateLimit(s.mux)
 }
 
+// HTTPServer returns a configured *http.Server ready to ListenAndServe.
 func (s *Server) HTTPServer() *http.Server {
 	return &http.Server{
 		Addr:              s.cfg.HTTPAddr,
@@ -48,7 +55,20 @@ func (s *Server) HTTPServer() *http.Server {
 	}
 }
 
+// AddProtectedRoute registers pattern with auth + rate-limit middleware already
+// applied. Phase 2 ingest and WebSocket handlers use this.
+func (s *Server) AddProtectedRoute(pattern string, h http.Handler) {
+	s.mux.Handle(pattern, s.auth(h))
+}
+
+// AddPublicRoute registers pattern without auth. Use for /metrics.
+func (s *Server) AddPublicRoute(pattern string, h http.Handler) {
+	s.mux.Handle(pattern, h)
+}
+
 func (s *Server) routes() {
+	// Health and readiness are public — load balancers and probes must reach
+	// them without credentials.
 	s.mux.HandleFunc("GET /healthz", s.handleHealth)
 	s.mux.HandleFunc("GET /readyz", s.handleReady)
 }
