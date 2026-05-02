@@ -17,14 +17,14 @@ var (
 	ErrSymbolRequired    = errors.New("symbol is required")
 	ErrSymbolTooLong     = errors.New("symbol exceeds max length")
 	ErrPriceInvalid      = errors.New("price must be a finite number greater than zero")
-	ErrVolumeInvalid     = errors.New("volume must be greater than or equal to zero")
+	ErrVolumeInvalid     = errors.New("volume must be a finite number greater than or equal to zero")
 	ErrTimestampRequired = errors.New("timestamp is required")
 )
 
 type Tick struct {
 	Symbol    string    `json:"symbol"`
 	Price     float64   `json:"price"`
-	Volume    int64     `json:"volume"`
+	Volume    float64   `json:"volume"` // float64: supports fractional quantities (crypto, forex)
 	Timestamp time.Time `json:"timestamp"`
 }
 
@@ -35,7 +35,7 @@ type Candle struct {
 	High      float64   `json:"high"`
 	Low       float64   `json:"low"`
 	Close     float64   `json:"close"`
-	Volume    int64     `json:"volume"`
+	Volume    float64   `json:"volume"` // float64: supports fractional quantities (crypto, forex)
 	StartTime time.Time `json:"start_time"`
 	EndTime   time.Time `json:"end_time"`
 }
@@ -52,7 +52,7 @@ func (t Tick) Validate() error {
 		return ErrSymbolTooLong
 	case t.Price <= 0 || math.IsNaN(t.Price) || math.IsInf(t.Price, 0):
 		return ErrPriceInvalid
-	case t.Volume < 0:
+	case t.Volume < 0 || math.IsNaN(t.Volume) || math.IsInf(t.Volume, 0):
 		return ErrVolumeInvalid
 	case t.Timestamp.IsZero():
 		return ErrTimestampRequired

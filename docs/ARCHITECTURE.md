@@ -66,6 +66,17 @@ Phase 1 implements the process/config/server/model foundation. Pipeline, aggrega
 storage, WebSocket, and metrics packages intentionally remain placeholders until the
 MVP implementation phase.
 
+## Data type decisions
+
+- **Volume:** Both `Tick.Volume` and `Candle.Volume` are `float64` in Go and `DOUBLE PRECISION`
+  in PostgreSQL.
+  Rationale: crypto and forex assets use fractional quantities (e.g. `0.00051 BTC`). Using
+  integer types truncates valid input and makes TickForge unusable for those asset classes.
+  `float64` provides 15–17 significant decimal digits, sufficient for all common tick sizes.
+  Validation: volume must be `>= 0`, finite, and not NaN (enforced in `pkg/models.Tick.Validate()`).
+- **Price:** `float64` — same finite/positive guard, established in Phase 1.
+- **Timestamps:** `time.Time` in Go; `TIMESTAMPTZ` in Postgres; always stored and compared in UTC.
+
 ## Concurrency model
 
 - **One goroutine** (or small set) owns HTTP accept; handlers should **not** block on slow aggregation.  
@@ -83,15 +94,44 @@ When the bounded queue is **full**:
 
 ## Aggregation strategy
 
-- **Timeframe:** MVP uses **1 minute** aligned to UTC wall clock (or configurable TZ—document at implementation).  
-- **OHLCV:** Open = first tick in window; high/low = extrema; close = last tick; volume = sum of tick volumes.  
-- **Late ticks:** Policy (include in current bucket vs. drop vs. separate “late” metric) must be **documented and tested**.  
+- **Timeframe:** MVP uses **1 minute** aligned to UTC wall clock (UTC only; not configurable in MVP).
+- **OHLCV:** Open = first tick price in the window; High = max price; Low = min price;
+  Close = last tick price; Volume = sum of all tick volumes.
+- **Late-tick policy (normative):**
+  A tick is *late* if its `timestamp` falls before the `start_time` of the current open bucket
+  for its symbol. **MVP decision: drop late ticks.**
+  - The tick is discarded from aggregation.
+  - A `tickforge_late_ticks_total{symbol}` Prometheus counter is incremented so operators
+    can observe the rate and tune upstream producers.
+  - A completed candle is **never retroactively mutated** once it has been emitted and persisted.
+  - Rationale: retroactive mutation would require re-opening closed candles, invalidating
+    WebSocket events already broadcast, and complicating the upsert strategy. For MVP,
+    predictability beats completeness.
+  - Future phases may add a configurable grace window (e.g. accept ticks up to 5 s late
+    into the previous bucket) behind a feature flag.
 
 ## Persistence strategy
 
-- **Candles** are the **primary durable artifact** in MVP; raw ticks are not required to be stored.  
-- **Migrations** in `migrations/` define schema; store uses parameterized SQL.  
-- **Readiness** (`/readyz`) reflects ability to query/write Postgres as appropriate.  
+- **Candles** are the **primary durable artifact** in MVP; raw ticks are not stored.
+- **Migrations** in `migrations/` define schema; store uses parameterized SQL only.
+- **Unique constraint (normative):** The candles table enforces
+  `UNIQUE(symbol, timeframe, start_time)`.
+  The storage layer **must** issue an upsert on every candle write:
+  ```sql
+  INSERT INTO candles (...) VALUES (...)
+  ON CONFLICT (symbol, timeframe, start_time)
+  DO UPDATE SET high=EXCLUDED.high, low=EXCLUDED.low,
+               close=EXCLUDED.close, volume=EXCLUDED.volume,
+               updated_at=NOW();
+  ```
+  This guarantees: no duplicate rows after a crash-restart; safe intra-minute updates
+  if a future phase emits partial candles before window close; idempotent replays during
+  backfill or recovery.
+- **Partial candles on restart:** When the server shuts down, the aggregator's current
+  open (incomplete) bucket is **discarded, not flushed**. The next tick after restart opens
+  a fresh bucket. Ticks from the same UTC minute that arrived before the restart are lost.
+  This is an accepted MVP trade-off; WAL-backed recovery is a future-phase concern.
+- **Readiness** (`/readyz`) reflects ability to query/write Postgres once storage is wired.
 
 ## WebSocket broadcasting design
 

@@ -14,6 +14,7 @@ func main() {
 	symbol := flag.String("symbol", "INFY", "symbol to generate")
 	count := flag.Int("count", 5, "number of ticks to generate")
 	startPrice := flag.Float64("price", 100, "starting price")
+	startVolume := flag.Float64("volume", 100, "starting volume (float64; supports fractional quantities)")
 	flag.Parse()
 
 	if *count <= 0 {
@@ -29,7 +30,7 @@ func main() {
 		tick := models.Tick{
 			Symbol:    models.NormalizeSymbol(*symbol),
 			Price:     *startPrice + float64(i)*0.05,
-			Volume:    int64(100 + i),
+			Volume:    *startVolume + float64(i),
 			Timestamp: now.Add(time.Duration(i) * time.Second),
 		}
 		if err := encoder.Encode(tick); err != nil {
