@@ -14,7 +14,7 @@ const (
 	defaultShutdownTimeout = 10 * time.Second
 )
 
-// Config contains process-level settings used to wire the service.
+// this contian  the  process-level settings used to wire the service perfetcly. for now phase1.
 type Config struct {
 	HTTPAddr        string
 	QueueSize       int
