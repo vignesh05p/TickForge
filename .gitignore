@@ -1,48 +1,35 @@
-# Binaries
+# Go binaries
 /bin/
+/build/
 /dist/
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
-/tickforge
-/server
-/simulator
-
-# Test binary, built with `go test -c`
 *.test
 
-# Output of the go coverage tool
-*.out
-coverage.*
+# Go coverage
+coverage.out
 coverage.html
+*.coverprofile
 
-# Go workspace file
-go.work
-go.work.sum
-
-# Dependency directories (remove the comment below to include it)
-# vendor/
-
-# Environment
+# Environment files
 .env
 .env.*
 !.env.example
 
-# IDE
-.idea/
+# IDE/editor
 .vscode/
+.idea/
 *.swp
 *.swo
-*~
 
-# OS
+# OS files
 .DS_Store
 Thumbs.db
 
-# Temporary
+# Temporary files
 tmp/
-temp/
 *.tmp
 *.log

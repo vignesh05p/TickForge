@@ -46,21 +46,25 @@ WebSocket Broadcaster   Prometheus Metrics
 7. **Broadcast** — WebSocket hub sends candle events to interested clients.  
 8. **Observe** — Metrics record latency, depth, errors, and drops at each stage.  
 
-## Package responsibilities (planned)
+## Package responsibilities
 
 | Package | Responsibility |
 |---------|----------------|
-| `cmd/server` | Process entry, wiring, signal handling |
+| `cmd/server` | Process entry, HTTP server wiring, signal handling |
 | `cmd/simulator` | Synthetic tick generation for dev/test |
-| `internal/config` | Env and config loading |
+| `internal/config` | Env config loading with defaults and validation |
 | `internal/ingest` | HTTP handlers for tick ingest (thin layer) |
 | `internal/pipeline` | Queue, workers, dispatch to aggregator |
 | `internal/aggregator` | OHLCV state machines per symbol/timeframe |
 | `internal/storage` | Postgres repository for candles |
 | `internal/websocket` | Hub, subscriptions, broadcast |
 | `internal/metrics` | Prometheus registration and collectors |
-| `internal/server` | HTTP server, routes, middleware glue |
-| `pkg/models` | Tick and candle types shared at boundaries |
+| `internal/server` | HTTP server, health/readiness routes, middleware glue |
+| `pkg/models` | Tick and candle types shared at boundaries, JSON contracts, basic tick validation |
+
+Phase 1 implements the process/config/server/model foundation. Pipeline, aggregation,
+storage, WebSocket, and metrics packages intentionally remain placeholders until the
+MVP implementation phase.
 
 ## Concurrency model
 

@@ -1,4 +1,7 @@
-.PHONY: run simulator test vet fmt tidy
+.PHONY: build run simulator test vet fmt tidy
+
+build:
+	go build ./cmd/server ./cmd/simulator
 
 run:
 	go run ./cmd/server

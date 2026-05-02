@@ -15,7 +15,7 @@ Thank you for your interest in TickForge. This project is an **open-source backe
 2. Clone the repository.  
 3. Run `go mod download`, then `make test` (or `go test ./...`).  
 
-When Docker Compose and PostgreSQL are wired up, this section will include connection strings and one-command bootstrap. Until then, the placeholder `cmd/server` and `cmd/simulator` binaries are sufficient to verify the toolchain.
+When Docker Compose and PostgreSQL are wired up, this section will include connection strings and one-command bootstrap. Until then, the Phase 1 `cmd/server` binary runs the health/readiness HTTP skeleton, and `cmd/simulator` emits sample JSON ticks for local pipeline development.
 
 ## Branch naming
 

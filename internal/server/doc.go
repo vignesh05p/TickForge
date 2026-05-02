@@ -1,2 +1,2 @@
-// Package server wires HTTP routes, middleware, and lifecycle. Implementation pending.
+// Package server wires HTTP routes, middleware, and lifecycle.
 package server

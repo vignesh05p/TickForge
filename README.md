@@ -111,7 +111,7 @@ Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 ```
 .
 ├── cmd/
-│   ├── server/          # HTTP + WebSocket entrypoint (implementation pending)
+│   ├── server/          # HTTP service entrypoint
 │   └── simulator/       # Tick producer for local load tests
 ├── internal/            # Private application code
 │   ├── aggregator/
@@ -141,10 +141,33 @@ git clone https://github.com/vigneshprabhu/tickforge.git
 cd tickforge
 go mod download
 make test    # or: go test ./...
-make run     # placeholder server message until HTTP is implemented
+make run     # starts the Phase 1 HTTP skeleton on :8080
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for full local setup once services are added.
+
+### Phase 1 runtime
+
+The Phase 1 server exposes:
+
+- `GET /healthz`
+- `GET /readyz`
+
+Configuration is environment-based:
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `TICKFORGE_HTTP_ADDR` | `:8080` | HTTP listen address |
+| `TICKFORGE_QUEUE_SIZE` | `1024` | Planned bounded queue capacity |
+| `TICKFORGE_WORKERS` | `4` | Planned worker pool size |
+| `TICKFORGE_SHUTDOWN_TIMEOUT` | `10s` | Graceful shutdown timeout |
+
+The simulator can generate newline-delimited JSON ticks:
+
+```bash
+make simulator
+go run ./cmd/simulator -symbol INFY -count 10 -price 1485.50
+```
 
 ## API overview
 
@@ -181,7 +204,7 @@ TickForge will expose **Prometheus** metrics such as (names subject to implement
 
 ## Roadmap
 
-1. **Foundation** — module layout, docs, CI (current phase)  
+1. **Foundation** — module layout, docs, CI, runnable service skeleton (complete)  
 2. **MVP** — ingest → pipeline → 1m OHLCV → Postgres → REST + WS + metrics  
 3. **Hardening** — load tests, richer metrics, operational runbooks  
 4. **Optional extensions** — additional timeframes, retention policies (as separate, scoped work)  

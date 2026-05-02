@@ -1,3 +1,2 @@
-// Package config loads application configuration from the environment
-// and optional files. Implementation pending.
+// Package config loads process configuration from environment variables.
 package config

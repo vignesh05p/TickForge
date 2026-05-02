@@ -1,4 +1,4 @@
-# API contract (planned)
+# API contract
 
 Base URL example: `http://localhost:8080`. All JSON uses UTF-8. Timestamps are **RFC3339** UTC unless noted.
 
@@ -28,7 +28,7 @@ HTTP status codes follow semantics (e.g. `400` validation, `404` not found, `429
 
 ## GET /healthz
 
-**Purpose:** Liveness—process is up.
+**Purpose:** Liveness: process is up.
 
 **Response** `200 OK`:
 
@@ -42,7 +42,7 @@ HTTP status codes follow semantics (e.g. `400` validation, `404` not found, `429
 
 ## GET /readyz
 
-**Purpose:** Readiness—dependencies (e.g. PostgreSQL) usable.
+**Purpose:** Readiness: process is able to accept traffic.
 
 **Response** `200 OK`:
 
@@ -53,6 +53,9 @@ HTTP status codes follow semantics (e.g. `400` validation, `404` not found, `429
 ```
 
 **Response** `503 Service Unavailable` when not ready (same `error` envelope as above).
+
+Phase 1 uses an in-process readiness check. PostgreSQL readiness will be wired when
+storage lands in the MVP phase.
 
 ---
 
@@ -240,4 +243,5 @@ Example:
 }
 ```
 
-This document is the **planned contract**; implementation PRs should update it when behavior is fixed.
+Health and readiness are implemented in Phase 1. The ingestion, candle query,
+symbols, metrics, and WebSocket contracts remain planned for the MVP phase.
